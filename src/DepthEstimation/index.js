@@ -17,6 +17,7 @@ import { mediaReady } from "../utils/imageUtilities";
 import handleOptions from "../utils/handleOptions";
 import { handleModelName } from "../utils/handleOptions";
 import { resizeImageAsTensor } from "../utils/imageUtilities";
+import { loadTransformersFromCDN } from "../utils/transformersLoader";
 
 /**
  * @typedef {'COLOR' | 'GRAYSCALE'} ColormapName
@@ -123,7 +124,7 @@ class DepthEstimation {
   constructor(modelName, options, callback) {
     this.modelName = handleModelName(
       modelName,
-      ["ARPortraitDepth"],
+      ["ARPortraitDepth", "depth-anything-v2-small"],
       "ARPortraitDepth",
       "depthEstimation"
     );
@@ -147,9 +148,7 @@ class DepthEstimation {
 
   /** Loads the TFJS models (Depth and optionally Segmentation). @private */
   async loadModels() {
-    // Renamed
-    // --- Load Depth Model ---
-    const pipeline = tfDepthEstimation.SupportedModels.ARPortraitDepth;
+    let pipeline;
     const modelConfig = handleOptions(
       this.config,
       {
@@ -189,21 +188,45 @@ class DepthEstimation {
       },
       "depthEstimation (runtime)"
     );
+    if (this.modelName === "ARPortraitDepth") {
+      // --- Load Depth Model ---
+      pipeline = tfDepthEstimation.SupportedModels.ARPortraitDepth;
 
-    // Initialize smoothed values based on initial config if dynamic normalization is off
-    if (!this.runtimeConfig.normalizeDynamically) {
-      this.smoothedMinDepth = this.runtimeConfig.minDepth;
-      this.smoothedMaxDepth = this.runtimeConfig.maxDepth;
-    }
+      // Initialize smoothed values based on initial config if dynamic normalization is off
+      if (!this.runtimeConfig.normalizeDynamically) {
+        this.smoothedMinDepth = this.runtimeConfig.minDepth;
+        this.smoothedMaxDepth = this.runtimeConfig.maxDepth;
+      }
 
-    await tf.ready();
-    this.model = await tfDepthEstimation.createEstimator(pipeline, modelConfig);
+      await tf.ready();
+      this.model = await tfDepthEstimation.createEstimator(
+        pipeline,
+        modelConfig
+      );
 
-    // --- Conditionally Load Segmentation Model ---
-    // Load segmentation model immediately if the option is initially true,
-    // otherwise, it will be loaded lazily on first use if the option is enabled later.
-    if (this.runtimeConfig.applySegmentationMask) {
-      await this.loadSegmenter();
+      // --- Conditionally Load Segmentation Model ---
+      // Load segmentation model immediately if the option is initially true,
+      // otherwise, it will be loaded lazily on first use if the option is enabled later.
+      if (this.runtimeConfig.applySegmentationMask) {
+        await this.loadSegmenter();
+      }
+    } else if (this.modelName === "depth-anything-v2-small") {
+      this.config.applySegmentationMask = false;
+
+      // Ensure transformers loader is available
+      await loadTransformersFromCDN();
+
+      // Call the global loadTransformers function
+      pipeline = await window.loadTransformers();
+      this.model = await pipeline(
+        "depth-estimation", // Model task
+        "onnx-community/depth-anything-v2-small",
+        {
+          device: "webgpu", //'webgpu', 'webgl', 'cpu', 'wasm'
+          //webgpu should be the first try, its the newest method
+          dtype: "fp16", //Precision of floats, how many decimal places.
+        }
+      );
     }
 
     return this;
@@ -476,7 +499,9 @@ class DepthEstimation {
       );
 
       // Create a p5.Image from the exact frame used for the estimation being returned in this result
-      result.sourceFrame = this.generateP5Image(this.getSourceFrameCanvas(width, height));
+      result.sourceFrame = this.generateP5Image(
+        this.getSourceFrameCanvas(width, height)
+      );
 
       // --- Apply Black Background using Segmentation Mask (if enabled) ---
       if (currentRuntimeConfig.applySegmentationMask && binaryMask) {
@@ -563,7 +588,11 @@ class DepthEstimation {
       this.smoothedMaxDepth = null;
     }
     // Conditionally load segmenter if needed for the loop
-    if (this.runtimeConfig.applySegmentationMask && !this.segmenter) {
+    if (
+      this.runtimeConfig.applySegmentationMask &&
+      !this.segmenter &&
+      this.modelName === "ARPortraitDepth"
+    ) {
       // Start loading, but don't await here, detectLoop will await ready
       this.loadSegmenter();
     }
@@ -591,11 +620,14 @@ class DepthEstimation {
   /** Internal loop for continuous estimation. @private */
   async detectLoop() {
     // Await main model readiness
-    await this.ready;
-    // If segmentation is enabled, also await segmenter readiness
-    if (this.runtimeConfig.applySegmentationMask) {
-      await this.loadSegmenter(); // Ensures segmenter is loaded before loop continues
+    if (this.modelName == "ARPortraitDepth") {
+      await this.ready;
+
+      if (this.runtimeConfig.applySegmentationMask) {
+        await this.loadSegmenter(); // Ensures segmenter is loaded before loop continues
+      }
     }
+
     await mediaReady(this.detectMedia, false);
 
     while (!this.signalStop) {
@@ -633,121 +665,171 @@ class DepthEstimation {
         inputForDepth.height
       );
 
-      if (this.detectMedia instanceof HTMLElement) {
-        /*
-         * If the input is an HTML element, turn it to a tensor and resize it to make sure it matches
-         * the element's .width and .height: the size set by the user in p5.js.
-         */
-        resizedSource = resizeImageAsTensor(
-          this.detectMedia,
-          this.detectMedia.width,
-          this.detectMedia.height
-        );
-        normalizedSource = tf.tidy(() => {
-          return resizedSource.div(255.0);
-        });
-        inputForDepth = resizedSource;
-      }
+      if (this.modelName === "ARPortraitDepth") {
+        if (this.detectMedia instanceof HTMLElement) {
+          /*
+           * If the input is an HTML element, turn it to a tensor and resize it to make sure it matches
+           * the element's .width and .height: the size set by the user in p5.js.
+           */
+          resizedSource = resizeImageAsTensor(
+            this.detectMedia,
+            this.detectMedia.width,
+            this.detectMedia.height
+          );
+          normalizedSource = tf.tidy(() => {
+            return resizedSource.div(255.0);
+          });
+          inputForDepth = resizedSource;
+        }
 
-      let backgroundDarkeningMask = null; // Reset for each frame
-      // --- Apply Segmentation Mask (if enabled) ---
-      if (this.runtimeConfig.applySegmentationMask && this.segmenter) {
-        try {
-          const segmentation = await this.segmenter.segmentPeople(
-            inputForDepth
-          );
-          if (segmentation && segmentation.length > 0) {
-            const foregroundColor = { r: 0, g: 0, b: 0, a: 0 };
-            const backgroundColor = { r: 0, g: 0, b: 0, a: 255 };
-            backgroundDarkeningMask = await bodySegmentation.toBinaryMask(
-              segmentation,
-              foregroundColor,
-              backgroundColor
+        let backgroundDarkeningMask = null; // Reset for each frame
+        // --- Apply Segmentation Mask (if enabled) ---
+        if (this.runtimeConfig.applySegmentationMask && this.segmenter) {
+          try {
+            const segmentation = await this.segmenter.segmentPeople(
+              inputForDepth
             );
-            //dispose segmentation tensors
-            segmentation.map((singleSegmentation) =>
-              singleSegmentation.mask
-                .toTensor()
-                .then((tensor) => tensor.dispose())
+            if (segmentation && segmentation.length > 0) {
+              const foregroundColor = { r: 0, g: 0, b: 0, a: 0 };
+              const backgroundColor = { r: 0, g: 0, b: 0, a: 255 };
+              backgroundDarkeningMask = await bodySegmentation.toBinaryMask(
+                segmentation,
+                foregroundColor,
+                backgroundColor
+              );
+              //dispose segmentation tensors
+              segmentation.map((singleSegmentation) =>
+                singleSegmentation.mask
+                  .toTensor()
+                  .then((tensor) => tensor.dispose())
+              );
+              const maskCanvas = this.getSegmentationMaskCanvas(
+                this.detectMedia.width,
+                this.detectMedia.height
+              );
+              await bodySegmentation.drawMask(
+                maskCanvas,
+                normalizedSource,
+                backgroundDarkeningMask,
+                this.runtimeConfig.segmentationOpacity,
+                this.runtimeConfig.segmentationMaskBlur,
+                false // Let estimateDepth handle the flip based on its config
+              );
+              inputForDepth = maskCanvas;
+            }
+            // No else needed, inputForDepth remains original media if no people found
+          } catch (segError) {
+            console.error(
+              "Error during continuous segmentation pre-processing:",
+              segError
             );
-            const maskCanvas = this.getSegmentationMaskCanvas(
-              this.detectMedia.width,
-              this.detectMedia.height
-            );
-            await bodySegmentation.drawMask(
-              maskCanvas,
-              normalizedSource,
-              backgroundDarkeningMask,
-              this.runtimeConfig.segmentationOpacity,
-              this.runtimeConfig.segmentationMaskBlur,
-              false // Let estimateDepth handle the flip based on its config
-            );
-            inputForDepth = maskCanvas;
-          }
-          // No else needed, inputForDepth remains original media if no people found
-        } catch (segError) {
-          console.error(
-            "Error during continuous segmentation pre-processing:",
-            segError
-          );
-          // Fallback to original or resized media
-          if (resizedSource != null) {
-            inputForDepth = resizedSource;
-          } else {
-            inputForDepth = this.detectMedia;
+            // Fallback to original or resized media
+            if (resizedSource != null) {
+              inputForDepth = resizedSource;
+            } else {
+              inputForDepth = this.detectMedia;
+            }
           }
         }
-      }
-      // --- End Segmentation Mask ---
+        // --- End Segmentation Mask ---
 
-      const estimationConfig = {
-        minDepth: this.runtimeConfig.normalizeDynamically
-          ? 0
-          : this.runtimeConfig.minDepth,
-        maxDepth: this.runtimeConfig.normalizeDynamically
-          ? 1
-          : this.runtimeConfig.maxDepth,
-        flipHorizontal: this.runtimeConfig.flipHorizontal,
-      };
-      let depthMapResult;
-      let result = null;
-      try {
-        depthMapResult = await this.model.estimateDepth(
-          inputForDepth,
-          estimationConfig
-        );
-        if (depthMapResult) {
-          // Pass original detectMedia for dimensions
-          result = await this.processDepthMap(
-            depthMapResult,
-            this.detectMedia,
-            this.runtimeConfig,
-            backgroundDarkeningMask
+        const estimationConfig = {
+          minDepth: this.runtimeConfig.normalizeDynamically
+            ? 0
+            : this.runtimeConfig.minDepth,
+          maxDepth: this.runtimeConfig.normalizeDynamically
+            ? 1
+            : this.runtimeConfig.maxDepth,
+          flipHorizontal: this.runtimeConfig.flipHorizontal,
+        };
+        let depthMapResult;
+        let result = null;
+        try {
+          depthMapResult = await this.model.estimateDepth(
+            inputForDepth,
+            estimationConfig
           );
-        } else {
-          console.warn("Depth estimation returned no result for this frame.");
+          if (depthMapResult) {
+            // Pass original detectMedia for dimensions
+            result = await this.processDepthMap(
+              depthMapResult,
+              this.detectMedia,
+              this.runtimeConfig,
+              backgroundDarkeningMask
+            );
+          } else {
+            console.warn("Depth estimation returned no result for this frame.");
+            await tf.nextFrame();
+            continue;
+          }
+        } catch (error) {
+          console.error("Error during continuous depth estimation:", error);
+          // Cannot dispose depthMapResult. Tensor disposal handled in processDepthMap or by user.
           await tf.nextFrame();
           continue;
         }
-      } catch (error) {
-        console.error("Error during continuous depth estimation:", error);
-        // Cannot dispose depthMapResult. Tensor disposal handled in processDepthMap or by user.
-        await tf.nextFrame();
-        continue;
-      }
 
-      if (resizedSource != null) {
-        resizedSource.dispose();
-      }
+        if (resizedSource != null) {
+          resizedSource.dispose();
+        }
 
-      if (normalizedSource.dispose) {
-        normalizedSource.dispose();
-      }
+        if (normalizedSource.dispose) {
+          normalizedSource.dispose();
+        }
 
-      if (result) {
-        this.detectCallback(result);
+        if (result) {
+          this.detectCallback(result);
+        }
+        await tf.nextFrame(); // Yield after processing
+      } else if (this.modelName === "depth-anything-v2-small") {
+        let depthResult = await this.model(ctx.canvas.toDataURL());
+        let { depth } = depthResult;
+        const depth2D = [];
+
+        for (let y = 0; y < depth.height; y++) {
+          // Get the row slice and normalize each element
+          const row = depth.data.slice(y * depth.width, (y + 1) * depth.width);
+          const normalizedRow = Array.from(row).map(value => (255 - value) / 255);
+          depth2D.push(normalizedRow);
+        }
+
+        let result = {
+          data: depth2D,
+          width: depth.width,
+          height: depth.height,
+          minDepth: 0,
+          maxDepth: 1,
+          getDepthAt: (x, y) => {
+            const xi = Math.floor(x);
+            const yi = Math.floor(y);
+            if (xi >= 0 && xi < depth.width && yi >= 0 && yi < depth.height) {
+              return depth2D[yi][xi];
+            }
+            return null;
+          },
+        };
+
+        // Create ImageData visualization
+        result.imageData = this.createImageDataFromDepthValues(
+          depth2D,
+          depth.width,   // Use depth.width
+          depth.height,  // Use depth.height
+          result.minDepth,
+          result.maxDepth,
+          this.runtimeConfig.colormap
+        );
+
+        // Create p5.Image versions
+        result.image = this.generateP5Image(result.imageData);
+        result.sourceFrame = this.generateP5Image(
+          this.getSourceFrameCanvas(depth.width, depth.height) // Fix here too
+        );
+        result.mask = null; // No segmentation for this model
+
+        if (result) {
+          this.detectCallback(result);
+        }
       }
-      await tf.nextFrame(); // Yield after processing
     }
 
     this.detecting = false;
