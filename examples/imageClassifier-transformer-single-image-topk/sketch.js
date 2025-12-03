@@ -17,7 +17,7 @@ let label = "";
 let confidence = "";
 
 function preload() {
-  classifier = ml5.imageClassifier("VisionTransformer");
+  classifier = ml5.imageClassifier("VisionTransformer", { topK: 2 });
   img = loadImage("images/bird.jpg");
 }
 
@@ -31,7 +31,6 @@ function setup() {
 function gotResult(results) {
   // The results are in an array ordered by score/confidence
   // Hugging Face transformers use 'score' instead of 'confidence'
-  console.log("The default results length is 3");
   console.log(results);
 
   // Display the results on the canvas
@@ -40,6 +39,7 @@ function gotResult(results) {
   textSize(18);
   label = "Label: " + results[0].label;
   confidence = "Confidence: " + nf(results[0].confidence, 0, 2);
+  text("Results Length: " + results.length, 10, 340);
   text(label, 10, 360);
   text(confidence, 10, 380);
 }

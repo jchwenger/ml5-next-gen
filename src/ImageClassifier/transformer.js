@@ -9,6 +9,7 @@ export class ImageClassifierTransformer {
     this.classifier = null;
     this.needToStop = false;
     this.isClassifying = false;
+    this.topK = options.topK || 3;
     this.ready = pipeline(
       "image-classification",
       "Xenova/vit-base-patch16-224",
@@ -31,8 +32,8 @@ export class ImageClassifierTransformer {
       "image",
       "No input image provided. If you want to classify a video, use classifyStart."
     );
-    const options = number !== undefined ? { top_k: number } : {};
-    const results = await this.classifier(image, options);
+    const topK = number !== undefined ? number : this.topK;
+    const results = await this.classifier(image, { top_k: topK });
     // Normalize the results to match the format form tensorflowjs
     const normalized = results.map((result) => ({
       label: result.label,
