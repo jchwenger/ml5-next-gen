@@ -8,7 +8,7 @@ let video;
 let detector;
 let detections = [];
 
-function preload(){
+function preload() {
   detector = ml5.objectDetection("cocossd");
 }
 

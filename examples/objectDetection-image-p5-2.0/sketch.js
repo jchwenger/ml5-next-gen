@@ -9,7 +9,7 @@ let detector;
 let detections = [];
 
 async function setup() {
-  img = await loadImage('dog_cat.jpg');
+  img = await loadImage("dog_cat.jpg");
   detector = await ml5.objectDetection("cocossd");
 
   createCanvas(640, 480);

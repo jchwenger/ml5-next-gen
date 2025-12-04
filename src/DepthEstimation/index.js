@@ -476,7 +476,9 @@ class DepthEstimation {
       );
 
       // Create a p5.Image from the exact frame used for the estimation being returned in this result
-      result.sourceFrame = this.generateP5Image(this.getSourceFrameCanvas(width, height));
+      result.sourceFrame = this.generateP5Image(
+        this.getSourceFrameCanvas(width, height)
+      );
 
       // --- Apply Black Background using Segmentation Mask (if enabled) ---
       if (currentRuntimeConfig.applySegmentationMask && binaryMask) {

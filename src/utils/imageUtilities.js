@@ -212,7 +212,9 @@ async function mediaReady(input, nextFrame) {
 function resizeImageAsTensor(input, width, height) {
   return tf.tidy(() => {
     const sourcePixelsTensor = tf.browser.fromPixels(input);
-    return tf.image.resizeBilinear(sourcePixelsTensor, [height, width]).clipByValue(0, 255);
+    return tf.image
+      .resizeBilinear(sourcePixelsTensor, [height, width])
+      .clipByValue(0, 255);
   });
 }
 
@@ -226,5 +228,5 @@ export {
   flipImage,
   imgToPixelArray,
   mediaReady,
-  resizeImageAsTensor
+  resizeImageAsTensor,
 };

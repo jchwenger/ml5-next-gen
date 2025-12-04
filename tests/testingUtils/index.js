@@ -25,4 +25,3 @@ export const randomImageData = (width = 200, height = 100) => {
   // Initialize a new ImageData object
   return { width, height, data: array };
 };
-

@@ -25,7 +25,7 @@ const withPreload = {
   neuralNetwork,
   sentiment,
   soundClassifier,
-  objectDetection
+  objectDetection,
 };
 
 const withoutAsync = {
@@ -40,7 +40,11 @@ const ml5 = Object.assign({ p5Utils }, withPreload, {
   setP5: p5Utils.setP5.bind(p5Utils),
 });
 
-p5Utils.setupP5Integration(ml5, Object.keys(withPreload), Object.keys(withoutAsync));
+p5Utils.setupP5Integration(
+  ml5,
+  Object.keys(withPreload),
+  Object.keys(withoutAsync)
+);
 
 communityStatement();
 

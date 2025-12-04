@@ -21,11 +21,11 @@ async function setup() {
   img = await loadImage("images/bird.jpg");
 
   createCanvas(400, 400);
-  
+
   // Initialize the classifier and load the image asynchronously
   classifier = await ml5.imageClassifier("MobileNet");
   img = await loadImage("images/bird.jpg");
-  
+
   // Classify the image and display it
   classifier.classify(img, gotResult);
   image(img, 0, 0, width, height);

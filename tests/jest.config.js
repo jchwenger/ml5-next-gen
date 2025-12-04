@@ -16,7 +16,7 @@ const config = {
   },
   resetMocks: true,
   rootDir: "..", // Set the rootDir to the project root so that transforms will apply to source code in /src
-  roots: ["<rootDir>/tests/unit"] // Only run the unit tests
+  roots: ["<rootDir>/tests/unit"], // Only run the unit tests
 };
 
 module.exports = config;

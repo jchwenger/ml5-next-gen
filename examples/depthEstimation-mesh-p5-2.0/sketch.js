@@ -97,13 +97,13 @@ function draw() {
           // Each "zone" with 4 vertices consists of two
           // adjacent triangles: abc and bdc
 
-          // Only add them if they are not part of 
+          // Only add them if they are not part of
           // the background, meaning their depth is not 0.
           if (!(aDepth === 0 || bDepth === 0 || cDepth === 0)) {
             // First triangle
             mesh.faces.push([a, b, c]);
           }
-          
+
           if (!(bDepth === 0 || dDepth === 0 || cDepth === 0)) {
             // Second triangle
             mesh.faces.push([b, d, c]);

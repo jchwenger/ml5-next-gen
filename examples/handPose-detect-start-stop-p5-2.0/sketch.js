@@ -13,7 +13,7 @@ let isDetecting = false;
 
 async function setup() {
   handPose = await ml5.handPose();
-  
+
   createCanvas(640, 480);
   // Create the webcam video and hide it
   video = createCapture(VIDEO);

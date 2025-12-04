@@ -21,12 +21,12 @@ export function isAbsoluteURL(str) {
 export function getAbsolutePath(absoluteOrRelativeUrl) {
   if (!isAbsoluteURL(absoluteOrRelativeUrl) && typeof window !== "undefined") {
     // If it starts with "/" then it is relative to the domain/subdomain.
-    if (absoluteOrRelativeUrl.startsWith('/')) {
+    if (absoluteOrRelativeUrl.startsWith("/")) {
       return window.location.origin + absoluteOrRelativeUrl;
     }
     // Otherwise it is relative to the current page.
     let base = window.location.href;
-    if (!base.endsWith('/')) base += '/';
+    if (!base.endsWith("/")) base += "/";
     return base + absoluteOrRelativeUrl;
   }
   return absoluteOrRelativeUrl;

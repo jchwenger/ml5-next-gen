@@ -21,7 +21,7 @@ let newDataAvailable = false;
 
 let options = {
   // Default is 4, but since this image is smaller, we change it to 1 so as to not lose too much detail
-  dilationFactor: 1, 
+  dilationFactor: 1,
 };
 
 async function setup() {

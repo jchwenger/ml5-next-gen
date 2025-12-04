@@ -17,7 +17,7 @@ let label = "Model loading...";
 
 async function setup() {
   classifier = await ml5.imageClassifier("MobileNet");
-  
+
   createCanvas(640, 480);
   background(255);
 

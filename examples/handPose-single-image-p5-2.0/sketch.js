@@ -16,8 +16,6 @@ async function setup() {
 
   createCanvas(640, 480);
 
-
-
   // Draw the image
   image(img, 0, 0);
   // Detect hands in an image

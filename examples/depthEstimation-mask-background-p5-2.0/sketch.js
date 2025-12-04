@@ -20,7 +20,7 @@ async function setup() {
   depthEstimator = await ml5.depthEstimation();
 
   // Load a backdrop image. "Bright Center Star Cluster" by NASA
-  backdrop = await loadImage('starcluster.jpg'); 
+  backdrop = await loadImage("starcluster.jpg");
 
   // Create a canvas the size of the webcam video
   createCanvas(videoWidth, videoHeight);
@@ -36,7 +36,7 @@ async function setup() {
 
 function draw() {
   //Draw a backdrop image that will be behind the depth map
-  image(backdrop, 0, -height/2, width);
+  image(backdrop, 0, -height / 2, width);
 
   // If depth estimation results are available
   if (depthMap) {

@@ -3,7 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-import crossFetch from 'cross-fetch';
+import crossFetch from "cross-fetch";
 import { asyncLoadImage } from "../testingUtils";
 import handpose from "../../src/Handpose";
 

@@ -56,9 +56,9 @@ const developmentConfig = {
   resolve: {
     fallback: {
       fs: false,
-      util: false
+      util: false,
     },
-  }
+  },
 };
 
 const productionConfig = {
@@ -85,9 +85,9 @@ const productionConfig = {
   resolve: {
     fallback: {
       fs: false,
-      util: false
+      util: false,
     },
-  }
+  },
 };
 
 module.exports = function (env, args) {

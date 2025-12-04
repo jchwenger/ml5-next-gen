@@ -21,7 +21,7 @@ function preload() {
   depthEstimator = ml5.depthEstimation();
 
   // Load the backdrop image. "Bright Center Star Cluster" by NASA
-  backdrop = loadImage('starcluster.jpg');
+  backdrop = loadImage("starcluster.jpg");
 }
 
 function setup() {
@@ -39,7 +39,7 @@ function setup() {
 
 function draw() {
   //Draw a backdrop image that will be behind the depth map
-  image(backdrop, 0, -height/2, width);
+  image(backdrop, 0, -height / 2, width);
 
   // If depth estimation results are available
   if (depthMap) {

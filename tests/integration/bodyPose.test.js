@@ -16,7 +16,6 @@ describe.skip("bodypose", () => {
   let image;
 
   beforeAll(async () => {
-
     // TODO: this should not be necessary! Should already be handled by setupTests.js.
     if (!global.fetch) {
       global.fetch = crossFetch;
@@ -29,12 +28,11 @@ describe.skip("bodypose", () => {
   });
 
   it("instantiates bodyPose", () => {
-    expect(myBodyPose).toBeDefined()
+    expect(myBodyPose).toBeDefined();
     expect(myBodyPose.model).toBeDefined();
   });
 
   it("detects poses in image", async () => {
-
     // Result should be an array with a single object containing the detection.
     const result = await myBodyPose.detect(image);
     expect(result).toHaveLength(1);
@@ -53,12 +51,12 @@ describe.skip("bodypose", () => {
     expect(nose.score).toBeCloseTo(0.721, 2);
   });
 
-  it("calls the user's callback",(done) => {
+  it("calls the user's callback", (done) => {
     expect.assertions(1);
     const callback = (result) => {
       expect(result).toHaveLength(1); // don't need to repeat the rest
       done();
-    }
+    };
     myBodyPose.detect(image, callback);
   });
 });

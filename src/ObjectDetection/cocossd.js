@@ -40,11 +40,11 @@ export class CocoSsd {
    */
   async detect(imgToPredict) {
     mediaReady(imgToPredict, true);
-    
+
     await tf.nextFrame();
 
     const detections = await this.model.detect(imgToPredict);
-    const formattedDetections = detections.map(prediction => {
+    const formattedDetections = detections.map((prediction) => {
       return {
         label: prediction.class,
         confidence: prediction.score,

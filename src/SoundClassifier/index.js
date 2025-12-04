@@ -98,7 +98,7 @@ class SoundClassifier {
   /**
    * Used to stop the continuous classification of a video
    */
-   classifyStop() {
+  classifyStop() {
     if (this.isClassifying) {
       this.signalStop = true;
     }

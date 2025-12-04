@@ -19,7 +19,7 @@ let imageModelURL = "https://teachablemachine.withgoogle.com/models/bXy2kDNi/";
 
 async function setup() {
   classifier = await ml5.imageClassifier("MobileNet");
-  
+
   createCanvas(640, 480);
 
   // Create the webcam video and hide it

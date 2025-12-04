@@ -8,9 +8,9 @@ let img;
 let detector;
 let detections = [];
 
-function preload(){
+function preload() {
   detector = ml5.objectDetection("cocossd");
-  img = loadImage('dog_cat.jpg');
+  img = loadImage("dog_cat.jpg");
 }
 
 function setup() {

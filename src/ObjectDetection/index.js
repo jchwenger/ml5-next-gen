@@ -16,7 +16,6 @@ import { mediaReady } from "../utils/imageUtilities";
 const MODEL_OPTIONS = ["cocossd"]; // Expandable for other models like YOLO
 
 class ObjectDetection {
-  
   /**
    * Create ObjectDetection model. Works on video and images.
    * @param {string} modelNameOrUrl - The name or the URL of the model to use.
@@ -56,14 +55,16 @@ class ObjectDetection {
 
   async loadModel(options) {
     if (!this.modelToUse || !this.modelToUse.load) {
-      throw new Error(`Model loader is missing or invalid for: ${this.modelName}`);
+      throw new Error(
+        `Model loader is missing or invalid for: ${this.modelName}`
+      );
     }
 
     this.model = await this.modelToUse.load(options);
 
     return this;
   }
-  
+
   /**
    * Detect objects once from the input image/video/canvas.
    * @param {HTMLVideoElement|HTMLImageElement|HTMLCanvasElement|ImageData} input - Target element.
@@ -71,7 +72,10 @@ class ObjectDetection {
    * @returns {ObjectDetectionPrediction}
    */
   async detect(input, cb) {
-    const args = handleArguments(input, cb).require("image", "No valid image input.");
+    const args = handleArguments(input, cb).require(
+      "image",
+      "No valid image input."
+    );
     await this.ready;
     return callCallback(this.model.detect(args.image), args.callback);
   }
@@ -82,7 +86,10 @@ class ObjectDetection {
    * @param {function} callback - Callback function called with each detection result.
    */
   async detectStart(input, callback) {
-    const args = handleArguments(input, callback).require("image", "No input provided.");
+    const args = handleArguments(input, callback).require(
+      "image",
+      "No input provided."
+    );
 
     const detectFrame = async () => {
       await mediaReady(args.image, true);
@@ -119,7 +126,11 @@ class ObjectDetection {
 }
 
 const objectDetection = (modelNameOrUrl, optionsOrCallback, cb) => {
-  const { string, options = {}, callback } = handleArguments(modelNameOrUrl, optionsOrCallback, cb);
+  const {
+    string,
+    options = {},
+    callback,
+  } = handleArguments(modelNameOrUrl, optionsOrCallback, cb);
   const instance = new ObjectDetection(string, options, callback);
   return instance;
 };
