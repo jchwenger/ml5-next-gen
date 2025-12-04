@@ -15,6 +15,8 @@ let video;
 // Variable for displaying the results on the canvas
 let label = "Model loading...";
 
+let isClassifying = false;
+
 function preload() {
   classifier = ml5.imageClassifier("VisionTransformer");
 }
@@ -27,6 +29,7 @@ function setup() {
   video = createCapture(VIDEO);
   video.size(640, 480);
   video.hide();
+  isClassifying = true;
   classifier.classifyStart(video, gotResult);
 }
 
@@ -44,4 +47,14 @@ function draw() {
 function gotResult(results) {
   // Update label variable which is displayed on the canvas
   label = results[0].label;
+}
+
+function mousePressed() {
+  if (isClassifying) {
+    classifier.classifyStop();
+    isClassifying = false;
+  } else {
+    isClassifying = true;
+    classifier.classifyStart(video, gotResult);
+  }
 }
