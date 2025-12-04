@@ -8,7 +8,7 @@ import { drawToCanvas } from "../utils/imageUtilities";
  * @returns {string} The device to use ("webgpu" or "wasm").
  * @private
  */
-function chooiseDevice() {
+function chooseDevice() {
   if (typeof navigator !== "undefined" && navigator.gpu) return "webgpu";
   return "wasm";
 }
@@ -34,7 +34,7 @@ export class ImageClassifierTransformer {
     this.needToStop = false; // A flag to signal stop to the classification loop.
     this.isClassifying = false; // A flag to track if classification is currently in progress.
     this.topK = options.topK || 3; // The number of top predictions to return.
-    this.device = options.device || chooiseDevice(); // The device to run inference on (webgpu or wasm).
+    this.device = options.device || chooseDevice(); // The device to run inference on (webgpu or wasm).
     this.ready = pipeline(
       "image-classification",
       "Xenova/vit-base-patch16-224",
@@ -94,6 +94,8 @@ export class ImageClassifierTransformer {
    * @public
    */
   async classifyStart(inputNumOrCallback, numOrCallback, cb) {
+    await this.ready;
+
     if (this.isClassifying || !this.classifier) return;
 
     this.needToStop = false;
