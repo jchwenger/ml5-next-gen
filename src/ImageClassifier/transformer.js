@@ -27,7 +27,7 @@ export class ImageClassifierTransformer {
    * @param {*} [options.*] - Additional options supported by transformers.js pipeline.
    *                          See: https://huggingface.co/docs/transformers.js/en/api/pipelines#module_pipelines.pipeline
    * @param {function} callback - A callback function that is called once the model has been loaded.
-   * @private
+   * @returns {ImageClassifierTransformer} The created ImageClassifierTransformer instance.
    */
   constructor(options, callback) {
     this.classifier = null; // The underlying transformers.js classifier instance.
